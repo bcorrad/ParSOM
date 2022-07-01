@@ -1,7 +1,5 @@
 import time
-
 import numpy as np
-
 from SomModelParallel import *
 from metrics import *
 from setup import *

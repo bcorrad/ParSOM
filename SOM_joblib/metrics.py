@@ -63,15 +63,15 @@ def evaluateSOM(T_l, N_jobs_l, verbose=True):
             print("Cost = ", co)
 
     # convert the list into dataframe row
-    data = pd.DataFrame(rows, index=False,
+    data = pd.DataFrame(rows,
                         columns=['N_TH', 'WEIGHT_SIZE', 'EPOCHS', 'GRID_ROWS', 'GRID_COLS', 'N_INPUTS', 'T_1',
                                  'T_P', 'SPEEDUP', 'EFFICIENCY', 'COST'])
-    data.to_csv('stats.csv', mode='a', header=False, index=False)
+    data.to_csv('stats.csv', mode='a', index=False)
 
 
 def saveTimersSOM(SomLayer, N):
     t_bmu_l, t_neig_l, t_adj_l, t_res_l = SomLayer.getTimers()
-    times_df = pd.DataFrame(index=False)
+    times_df = pd.DataFrame()
     times_df['bmu'] = t_bmu_l
     times_df['neig'] = t_neig_l
     times_df['adj'] = t_adj_l

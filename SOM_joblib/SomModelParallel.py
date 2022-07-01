@@ -1,7 +1,5 @@
-import time
-
 import numpy as np
-import pandas as pd
+from datetime import datetime
 from joblib import Parallel, delayed
 
 
@@ -133,6 +131,7 @@ class SomLayerP:
         Parallel(n_jobs=self.N_jobs, backend="threading", prefer="threads")(
             [delayed(self.cycle_reset_grid)(neuron) for neuron in self.som_grid.nodes])
 
+
     def training_som(self, epochs, inp_vec):
         alpha = epochs / np.log(self.init_lrate)
         for epoch in range(epochs):
@@ -140,31 +139,31 @@ class SomLayerP:
             radius = self.init_radius * np.exp(-epoch / alpha)
             learning_rate = self.init_lrate * np.exp(-epoch / epochs)
             for i in range(len(inp_vec)):
-                t_bmu_s = time.time()
+                t_bmu_s = datetime.now()
                 bmu_index = self.bmu(inp_vec[i, :])
-                t_bmu_e = time.time()
-                self.t_bmu_l.append(t_bmu_e - t_bmu_s)
+                t_bmu_e = datetime.now()
+                self.t_bmu_l.append(t_bmu_e.microsecond - t_bmu_s.microsecond)
 
                 # print("Time bmu: ", t_bmu_e - t_bmu_s)
 
-                t_neig_s = time.time()
+                t_neig_s = datetime.now()
                 self.neighborhood(bmu_index, radius, inp_vec)
-                t_neig_e = time.time()
-                self.t_neig_l.append(t_neig_e - t_neig_s)
+                t_neig_e = datetime.now()
+                self.t_neig_l.append(t_neig_e.microsecond - t_neig_s.microsecond)
 
                 # print("Time neighborhood: ", t_neig_e - t_neig_s)
 
-                t_adj_s = time.time()
+                t_adj_s = datetime.now()
                 self.adjust_weight(radius, bmu_index, inp_vec[i, :])
-                t_adj_e = time.time()
-                self.t_adj_l.append(t_adj_e - t_adj_s)
+                t_adj_e = datetime.now()
+                self.t_adj_l.append(t_adj_e.microsecond - t_adj_s.microsecond)
 
                 # print("Time adjust weight: ", t_adj_e - t_adj_s)
 
-                t_res_s = time.time()
+                t_res_s = datetime.now()
                 self.reset_grid()
-                t_res_e = time.time()
-                self.t_res_l.append(t_res_e - t_res_s)
+                t_res_e = datetime.now()
+                self.t_res_l.append(t_res_e.microsecond - t_res_s.microsecond)
 
                 # print("Time reset: ", t_res_e - t_res_s)
 

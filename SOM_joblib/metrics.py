@@ -1,6 +1,11 @@
+import math
+
 import pandas as pd
 from setup import *
-import matplotlib.pyplot as plt
+
+
+def microsec(seconds):
+    return seconds * math.pow(10, 6)
 
 
 def speedUp(paralTime_lld, totalTime_lld):
@@ -37,7 +42,7 @@ def cost(paralTime_lld, nThr):
     return paralTime_lld * nThr
 
 
-def evaluateSOM(T_l, N_jobs_l, verbose=True):
+def evaluateSOM(T_l, N_jobs_l, P, weight_size_, epochs, grid_rows_, grid_cols_, n_inputs_, verbose=True):
     """
     Evaluate SOM and print metrics to file
     :param T_l: list of execution times
@@ -46,27 +51,26 @@ def evaluateSOM(T_l, N_jobs_l, verbose=True):
     rows = list()
     print("==== EVALUATION ====")
     T_1 = T_l[0]
-    for P in range(len(N_jobs_l)):
-        T_P = T_l[P]
-        su = speedUp(T_P, T_1)
-        ef = efficiency(T_P, T_1, P + 1)
-        co = cost(T_P, P + 1)
-        rows.append([N_jobs_l[P], weight_size, epochs, grid_rows, grid_cols, n_inputs, T_1, T_P, su, ef, co])
+    T_P = T_l[P]
+    su = speedUp(T_P, T_1)
+    ef = efficiency(T_P, T_1, P + 1)
+    co = cost(T_P, P + 1)
+    rows.append([N_jobs_l[P], weight_size_, epochs, grid_rows_, grid_cols_, n_inputs_, T_1, T_P, su, ef, co])
 
-        if verbose:
-            print(["=" * 25])
-            print("N_THREADS = ", N_jobs_l[P])
-            print("T_1 = ", T_1)
-            print("T_P = ", T_P)
-            print("Speed up = ", su)
-            print("Efficiency = ", ef)
-            print("Cost = ", co)
+    if verbose:
+        print(["=" * 25])
+        print("N_THREADS = ", N_jobs_l[P])
+        print("T_1 = ", T_1)
+        print("T_P = ", T_P)
+        print("Speed up = ", su)
+        print("Efficiency = ", ef)
+        print("Cost = ", co)
 
     # convert the list into dataframe row
     data = pd.DataFrame(rows,
                         columns=['N_TH', 'WEIGHT_SIZE', 'EPOCHS', 'GRID_ROWS', 'GRID_COLS', 'N_INPUTS', 'T_1',
                                  'T_P', 'SPEEDUP', 'EFFICIENCY', 'COST'])
-    data.to_csv('stats.csv', mode='a', index=False)
+    data.to_csv('reports/stats.csv', mode='a', index=False, header=False)
 
 
 def saveTimersSOM(SomLayer, N):

@@ -1,5 +1,4 @@
 import numpy as np
-from datetime import datetime
 from joblib import Parallel, delayed
 
 
@@ -65,14 +64,8 @@ class SomLayerP:
         self.init_radius = np.max([grid_rows, grid_cols]) / 2
         self.distances = []  # list of tuples [(distance, nodeID)]
         self.indexes = []
-        # self.alpha = alpha
         self.BMU = None
         self.N_jobs = N_jobs
-        # Initialize list for timing
-        self.t_bmu_l = []
-        self.t_neig_l = []
-        self.t_adj_l = []
-        self.t_res_l = []
 
     def bmu_cycle(self, index, inpt):
         neuron = self.som_grid.nodes[index]
@@ -80,19 +73,16 @@ class SomLayerP:
         return distance, neuron.get_id()
 
     def bmu(self, inpt):
-        # parallelize OK
         self.distances = Parallel(n_jobs=self.N_jobs, backend="threading", prefer="threads")(
             [delayed(self.bmu_cycle)(i, inpt) for i in range(len(self.som_grid.nodes))])
 
-        # lambda function finds the tuple in list with the minimum value in position 0
+        # Find the tuple in list with the minimum value in position 0
         min_dist_tuple = min(self.distances, key=lambda t: t[0])
         # BMU index is the value in position 1 of the tuple
         BMU_index = min_dist_tuple[1]
         return BMU_index
 
-    # def cycle_adjust_weight(self, neuron, bmu_index, radius, lrate, inp_vec):
-    def cycle_adjust_weight(self, neuron, bmu_index, radius, inp_vec):
-        lrate = self.init_lrate
+    def cycle_adjust_weight(self, neuron, bmu_index, radius, inp_vec, lrate):
         if neuron.isNeighbor:
             bmu = self.som_grid.nodes[bmu_index]
             coordinates_neuron = np.array([neuron.x, neuron.y])
@@ -101,10 +91,9 @@ class SomLayerP:
             theta = np.exp(-dist_bmu / (2 * np.power(radius, 2)))
             neuron.weights = neuron.weights + theta * lrate * (inp_vec - neuron.weights)
 
-    def adjust_weight(self, radius, bmu_index, inp_vec):
-        # parallelize OK
+    def adjust_weight(self, radius, bmu_index, inp_vec, lrate):
         Parallel(n_jobs=self.N_jobs, backend="threading", prefer="threads")(
-            [delayed(self.cycle_adjust_weight)(neuron, bmu_index, radius, inp_vec)
+            [delayed(self.cycle_adjust_weight)(neuron, bmu_index, radius, inp_vec, lrate)
              for neuron in self.som_grid.nodes])
 
     def cycle_neighborhood(self, neuron, bmu_index, radius):
@@ -115,10 +104,7 @@ class SomLayerP:
         if dist <= radius:
             neuron.isNeighbor = True
 
-    def neighborhood(self, bmu_index, radius, inp_vec):
-        # parallelize OK
-        # Parallel(n_jobs=self.N_jobs)([delayed(self.cycle_adjust_weight)(neuron, bmu_index, radius, inp_vec)
-        #                          for neuron in self.som_grid.nodes])
+    def neighborhood(self, bmu_index, radius):
         Parallel(n_jobs=self.N_jobs, backend="threading", prefer="threads")(
             [delayed(self.cycle_neighborhood)(neuron, bmu_index, radius)
              for neuron in self.som_grid.nodes])
@@ -127,10 +113,8 @@ class SomLayerP:
         neuron.isNeighbor = False
 
     def reset_grid(self):
-        # parallelize OK
         Parallel(n_jobs=self.N_jobs, backend="threading", prefer="threads")(
             [delayed(self.cycle_reset_grid)(neuron) for neuron in self.som_grid.nodes])
-
 
     def training_som(self, epochs, inp_vec):
         alpha = epochs / np.log(self.init_lrate)
@@ -139,34 +123,7 @@ class SomLayerP:
             radius = self.init_radius * np.exp(-epoch / alpha)
             learning_rate = self.init_lrate * np.exp(-epoch / epochs)
             for i in range(len(inp_vec)):
-                t_bmu_s = datetime.now()
                 bmu_index = self.bmu(inp_vec[i, :])
-                t_bmu_e = datetime.now()
-                self.t_bmu_l.append(t_bmu_e.microsecond - t_bmu_s.microsecond)
-
-                # print("Time bmu: ", t_bmu_e - t_bmu_s)
-
-                t_neig_s = datetime.now()
-                self.neighborhood(bmu_index, radius, inp_vec)
-                t_neig_e = datetime.now()
-                self.t_neig_l.append(t_neig_e.microsecond - t_neig_s.microsecond)
-
-                # print("Time neighborhood: ", t_neig_e - t_neig_s)
-
-                t_adj_s = datetime.now()
-                self.adjust_weight(radius, bmu_index, inp_vec[i, :])
-                t_adj_e = datetime.now()
-                self.t_adj_l.append(t_adj_e.microsecond - t_adj_s.microsecond)
-
-                # print("Time adjust weight: ", t_adj_e - t_adj_s)
-
-                t_res_s = datetime.now()
+                self.neighborhood(bmu_index, radius)
+                self.adjust_weight(radius, bmu_index, inp_vec[i, :], learning_rate)
                 self.reset_grid()
-                t_res_e = datetime.now()
-                self.t_res_l.append(t_res_e.microsecond - t_res_s.microsecond)
-
-                # print("Time reset: ", t_res_e - t_res_s)
-
-    def getTimers(self):
-        return self.t_bmu_l, self.t_neig_l, self.t_adj_l, self.t_res_l
-
